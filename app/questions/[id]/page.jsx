@@ -2,15 +2,21 @@
 
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
-import { useParams, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 const API_BASE = "https://api.crazystory.in/api/patient/quizzes";
 const SAVE_ANSWER_URL = "https://api.crazystory.in/api/patient/answer/save";
 
 function QuizQuestions() {
-  const params = useParams();
   const router = useRouter();
-  const quizId = params?.id;
+  const [quizId, setQuizId] = useState(null);
+
+  // Read the dynamic quiz ID from /questions/[id] after mounting.
+  // This avoids useParams() during Next.js prerendering.
+  useEffect(() => {
+    const segments = window.location.pathname.split("/").filter(Boolean);
+    setQuizId(segments[segments.length - 1] || null);
+  }, []);
 
   const [quiz, setQuiz] = useState(null);
   const [loading, setLoading] = useState(true);

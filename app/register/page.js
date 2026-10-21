@@ -33,6 +33,7 @@ const INITIAL = {
   phone: "",
   email: "",
   password: "",
+  confirmPassword: "",
   address: "",
   city: "",
   state: "",
@@ -49,7 +50,11 @@ function validate(f) {
   if (f.age && (+f.age < 1 || +f.age > 120)) e.age = "Enter a valid age";
   if (!/^[6-9]\d{9}$/.test(f.phone)) e.phone = "Enter a valid 10-digit mobile number";
   if (!EMAIL_RE.test(f.email)) e.email = "Enter a valid email address";
-  if (REQUIRE_PASSWORD && f.password.length < 6) e.password = "Use at least 6 characters";
+  if (REQUIRE_PASSWORD) {
+    if (f.password.length < 6) e.password = "Use at least 6 characters";
+    if (!f.confirmPassword) e.confirmPassword = "Confirm your password";
+    else if (f.confirmPassword !== f.password) e.confirmPassword = "Passwords do not match";
+  }
   if (!f.address.trim()) e.address = "Enter your full address";
   if (!f.city.trim()) e.city = "Enter your city";
   if (!f.state.trim()) e.state = "Enter your state";
@@ -77,6 +82,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState(INITIAL);
   const [errors, setErrors] = useState({});
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState("");
 
@@ -95,13 +101,28 @@ export default function RegisterPage() {
     setLoading(true);
     setMessage("");
     try {
-      const body = { ...form };
-      if (!REQUIRE_PASSWORD) delete body.password;
+      const payload = {
+        full_name: form.fullName,
+        age: form.age,
+        gender: form.gender.toLowerCase(),
+        phone: form.phone,
+        email: form.email,
+        full_address: form.address,
+        city: form.city,
+        state: form.state,
+        pincode: form.pincode,
+        location: form.location,
+        referred_by: form.referredBy,
+      };
+      if (REQUIRE_PASSWORD) {
+        payload.password = form.password;
+        payload.password_confirmation = form.confirmPassword;
+      }
 
       const res = await fetch(`${API_URL}/patient/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.message || "Registration failed. Try again.");
@@ -530,27 +551,51 @@ export default function RegisterPage() {
               </Field>
 
               {REQUIRE_PASSWORD && (
-                <Field id="password" label="Password" required error={errors.password}>
-                  <div className="input-wrap pw">
-                    <span className="icon-left"><Icon name="lock" /></span>
-                    <input
-                      id="password"
-                      type={showPassword ? "text" : "password"}
-                      placeholder="At least 6 characters"
-                      autoComplete="new-password"
-                      value={form.password}
-                      onChange={set("password")}
-                    />
-                    <button
-                      type="button"
-                      className="eye"
-                      onClick={() => setShowPassword((s) => !s)}
-                      aria-label={showPassword ? "Hide password" : "Show password"}
-                    >
-                      <Icon name={showPassword ? "eyeOff" : "eye"} />
-                    </button>
-                  </div>
-                </Field>
+                <div className="grid g2">
+                  <Field id="password" label="Password" required error={errors.password}>
+                    <div className="input-wrap pw">
+                      <span className="icon-left"><Icon name="lock" /></span>
+                      <input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="At least 6 characters"
+                        autoComplete="new-password"
+                        value={form.password}
+                        onChange={set("password")}
+                      />
+                      <button
+                        type="button"
+                        className="eye"
+                        onClick={() => setShowPassword((s) => !s)}
+                        aria-label={showPassword ? "Hide password" : "Show password"}
+                      >
+                        <Icon name={showPassword ? "eyeOff" : "eye"} />
+                      </button>
+                    </div>
+                  </Field>
+
+                  <Field id="confirmPassword" label="Confirm password" required error={errors.confirmPassword}>
+                    <div className="input-wrap pw">
+                      <span className="icon-left"><Icon name="lock" /></span>
+                      <input
+                        id="confirmPassword"
+                        type={showConfirm ? "text" : "password"}
+                        placeholder="Re-enter your password"
+                        autoComplete="new-password"
+                        value={form.confirmPassword}
+                        onChange={set("confirmPassword")}
+                      />
+                      <button
+                        type="button"
+                        className="eye"
+                        onClick={() => setShowConfirm((s) => !s)}
+                        aria-label={showConfirm ? "Hide confirm password" : "Show confirm password"}
+                      >
+                        <Icon name={showConfirm ? "eyeOff" : "eye"} />
+                      </button>
+                    </div>
+                  </Field>
+                </div>
               )}
 
               <Field id="address" label="Full address" required error={errors.address}>

@@ -76,7 +76,7 @@ function QuizQuestions() {
     setSaveStatus((prev) => ({ ...prev, [questionId]: "saving" }));
 
     const token =
-      typeof window !== "undefined" ? localStorage.getItem("token") : null;
+      typeof window !== "undefined" ? localStorage.getItem("athma_token") : null;
 
     try {
       const res = await fetch(SAVE_ANSWER_URL, {

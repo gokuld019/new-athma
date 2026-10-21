@@ -38,10 +38,11 @@ function QuizQuestions() {
     setError("");
     try {
       const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        typeof window !== "undefined" ? localStorage.getItem("athma_token") : null;
 
       const res = await fetch(`${API_BASE}/${quizId}`, {
         headers: {
+          Accept: "application/json",
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
@@ -82,6 +83,7 @@ function QuizQuestions() {
       const res = await fetch(SAVE_ANSWER_URL, {
         method: "POST",
         headers: {
+          Accept: "application/json",
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

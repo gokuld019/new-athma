@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 
 const API_BASE = "https://api.crazystory.in/api/patient/quizzes";
 const SAVE_ANSWER_URL = "https://api.crazystory.in/api/patient/answer/save";
 
-export default function QuizQuestionsPage() {
+function QuizQuestions() {
   const params = useParams();
   const router = useRouter();
   const quizId = params?.id;
@@ -612,5 +612,17 @@ export default function QuizQuestionsPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function QuizQuestionsPage() {
+  return (
+    <Suspense
+      fallback={
+        <main style={{ minHeight: "100vh", background: "#fffdfb" }} />
+      }
+    >
+      <QuizQuestions />
+    </Suspense>
   );
 }

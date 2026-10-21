@@ -15,10 +15,11 @@ export default function QuestionsPage() {
     setError("");
     try {
       const token =
-        typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        typeof window !== "undefined" ? localStorage.getItem("athma_token") : null;
 
       const res = await fetch(API_URL, {
         headers: {
+          Accept: "application/json",
           "Content-Type": "application/json",
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

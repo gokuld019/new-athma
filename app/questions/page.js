@@ -2,13 +2,19 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const API_URL = "https://api.crazystory.in/api/patient/quizzes";
+const LOGOUT_URL = "https://api.crazystory.in/api/patient/logout";
 
 export default function QuestionsPage() {
+  const router = useRouter();
   const [quizzes, setQuizzes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
   const loadQuizzes = async () => {
     setLoading(true);
@@ -42,6 +48,41 @@ export default function QuestionsPage() {
     loadQuizzes();
   }, []);
 
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      const token =
+        typeof window !== "undefined" ? localStorage.getItem("athma_token") : null;
+
+      // Fire API call but proceed with local cleanup regardless of result
+      await fetch(LOGOUT_URL, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      }).catch(() => null);
+
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("athma_token");
+      }
+      
+      // Redirect to login page
+      router.push("/login");
+    } catch (err) {
+      console.error("Logout failed:", err);
+      // Still clear local state even if API fails
+      if (typeof window !== "undefined") {
+        localStorage.removeItem("athma_token");
+        router.push("/login");
+      }
+    } finally {
+      setLoggingOut(false);
+      setShowLogoutConfirm(false);
+    }
+  };
+
   return (
     <main className="q-page">
       <style>{`
@@ -65,7 +106,16 @@ export default function QuestionsPage() {
         }
         .q-wrap { max-width: 1120px; margin: 0 auto; }
 
-        .q-head { margin-bottom: 40px; }
+        /* header row with logout */
+        .q-header-row {
+          display: flex;
+          justify-content: space-between;
+          align-items: flex-start;
+          gap: 24px;
+          margin-bottom: 40px;
+        }
+        
+        .q-head { flex: 1; }
         .q-eyebrow {
           display: inline-flex; align-items: center; gap: 8px;
           padding: 6px 14px; border-radius: 999px;
@@ -86,6 +136,43 @@ export default function QuestionsPage() {
         }
         .q-sub { margin: 0; font-size: 16px; color: var(--muted); max-width: 520px; line-height: 1.6; }
 
+        /* sleek logout button */
+        .q-logout-btn {
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          padding: 10px 18px;
+          border-radius: 12px;
+          background: #fff;
+          border: 1.5px solid var(--line);
+          color: var(--muted);
+          font-family: inherit;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+          transition: all 0.25s ease;
+          flex-shrink: 0;
+          margin-top: 8px;
+        }
+        .q-logout-btn:hover {
+          background: #fef2f2;
+          border-color: #fecaca;
+          color: #b91c1c;
+          transform: translateY(-1px);
+          box-shadow: 0 6px 12px -4px rgba(220, 38, 38, 0.15);
+        }
+        .q-logout-btn:active {
+          transform: translateY(0);
+        }
+        .q-logout-btn svg {
+          transition: transform 0.25s ease;
+        }
+        .q-logout-btn:hover svg {
+          transform: translateX(2px);
+        }
+
+        /* grid & cards */
         .q-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 22px; }
 
         .q-card {
@@ -158,22 +245,93 @@ export default function QuestionsPage() {
         }
         .q-btn:hover { transform: translateY(-2px); box-shadow: 0 14px 24px -8px rgba(234,88,12,.7); }
 
+        /* modal overlay for logout confirm */
+        .q-modal-overlay {
+          position: fixed; inset: 0; z-index: 50;
+          background: rgba(28, 25, 23, 0.4);
+          backdrop-filter: blur(4px);
+          display: flex; align-items: center; justify-content: center;
+          padding: 16px;
+          animation: q-fade-in 0.2s ease;
+        }
+        @keyframes q-fade-in { from { opacity: 0; } to { opacity: 1; } }
+        
+        .q-modal {
+          background: #fff; border-radius: 20px; padding: 28px;
+          width: 100%; max-width: 400px;
+          box-shadow: 0 24px 48px -12px rgba(28, 25, 23, 0.25);
+          animation: q-slide-up 0.3s ease;
+          text-align: center;
+        }
+        @keyframes q-slide-up { 
+          from { opacity: 0; transform: translateY(10px); } 
+          to { opacity: 1; transform: translateY(0); } 
+        }
+        
+        .q-modal-icon {
+          width: 48px; height: 48px; border-radius: 50%;
+          background: #fef2f2; color: #dc2626;
+          display: grid; place-items: center;
+          margin: 0 auto 16px;
+        }
+        .q-modal h2 {
+          margin: 0 0 8px; font-size: 20px; font-weight: 700; color: var(--ink);
+        }
+        .q-modal p {
+          margin: 0 0 24px; font-size: 14.5px; line-height: 1.5; color: var(--muted);
+        }
+        .q-modal-actions {
+          display: flex; gap: 12px;
+        }
+        .q-modal-btn {
+          flex: 1; padding: 12px; border-radius: 12px;
+          font-family: inherit; font-size: 14px; font-weight: 600;
+          cursor: pointer; transition: all 0.2s ease;
+        }
+        .q-modal-btn.cancel {
+          background: #f5f5f5; color: var(--ink); border: none;
+        }
+        .q-modal-btn.cancel:hover { background: #e5e5e5; }
+        .q-modal-btn.danger {
+          background: #dc2626; color: #fff; border: none;
+          box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+        }
+        .q-modal-btn.danger:hover { background: #b91c1c; box-shadow: 0 6px 16px rgba(220, 38, 38, 0.4); }
+        .q-modal-btn.danger:disabled { opacity: 0.7; cursor: not-allowed; }
+
         @media (max-width: 600px) {
           .q-page { padding: 40px 16px 60px; }
           .q-grid { grid-template-columns: 1fr; }
+          .q-header-row { flex-direction: column; align-items: flex-start; gap: 16px; }
+          .q-logout-btn { margin-top: 0; }
         }
       `}</style>
 
       <div className="q-wrap">
-        <header className="q-head">
-          <span className="q-eyebrow">Assessments</span>
-          <h1 className="q-title">
-            Take a <span>Quiz</span>
-          </h1>
-          <p className="q-sub">
-            Choose an assessment below to begin. It only takes a few minutes.
-          </p>
-        </header>
+        <div className="q-header-row">
+          <header className="q-head">
+            <span className="q-eyebrow">Assessments</span>
+            <h1 className="q-title">
+              Take a <span>Quiz</span>
+            </h1>
+            <p className="q-sub">
+              Choose an assessment below to begin. It only takes a few minutes.
+            </p>
+          </header>
+
+          <button 
+            className="q-logout-btn" 
+            onClick={() => setShowLogoutConfirm(true)}
+            aria-label="Log out"
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" y1="12" x2="9" y2="12" />
+            </svg>
+            Log out
+          </button>
+        </div>
 
         {loading && (
           <div className="q-grid">
@@ -239,6 +397,39 @@ export default function QuestionsPage() {
           </div>
         )}
       </div>
+
+      {/* Modern Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="q-modal-overlay">
+          <div className="q-modal">
+            <div className="q-modal-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                <polyline points="16 17 21 12 16 7" />
+                <line x1="21" y1="12" x2="9" y2="12" />
+              </svg>
+            </div>
+            <h2>Log out?</h2>
+            <p>Are you sure you want to log out of your account? You will need to log back in to access your quizzes.</p>
+            <div className="q-modal-actions">
+              <button 
+                className="q-modal-btn cancel" 
+                onClick={() => setShowLogoutConfirm(false)}
+                disabled={loggingOut}
+              >
+                Cancel
+              </button>
+              <button 
+                className="q-modal-btn danger" 
+                onClick={handleLogout}
+                disabled={loggingOut}
+              >
+                {loggingOut ? "Logging out..." : "Yes, log out"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

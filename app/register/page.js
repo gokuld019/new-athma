@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://api.crazystory.in/api";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://counslingsoftware.athmarehab.com/api";
 const EMAIL_RE = /^\S+@\S+\.\S+$/;
 
 // Set to false if your register API creates the password itself

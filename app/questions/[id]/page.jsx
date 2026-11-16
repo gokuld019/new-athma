@@ -4,8 +4,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_BASE = "https://api.crazystory.in/api/patient/quizzes";
-const SAVE_ANSWER_URL = "https://api.crazystory.in/api/patient/answer/save";
+const API_BASE = "https://counslingsoftware.athmarehab.com/api/patient/quizzes";
+const SAVE_ANSWER_URL = "https://counslingsoftware.athmarehab.com/api/patient/answer/save";
 
 const STORAGE_KEY = (id) => `quiz_answers_${id}`;
 const BLOCK_SIZE = 20;

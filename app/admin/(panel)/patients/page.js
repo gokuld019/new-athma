@@ -397,6 +397,9 @@ export default function PatientsPage() {
   const [answerFilter, setAnswerFilter] = useState("All");
   const [reporting, setReporting] = useState(false);
 
+  // 1. Added state to store the computed stats to avoid Date.now() in render
+  const [stats, setStats] = useState({ total: 0, signed: 0, week: 0 });
+
   const cacheRef = useRef({}); // attempt_id -> details response
   const reportCacheRef = useRef({}); // attempt_id -> report response
   const reqRef = useRef(0); // ignores stale responses when you switch quickly
@@ -555,13 +558,15 @@ export default function PatientsPage() {
   };
 
   /* ---------- derived ---------- */
-  const stats = useMemo(() => {
+  
+  // 2. Moved Date.now() into useEffect to avoid prerender build error
+  useEffect(() => {
     const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    return {
+    setStats({
       total: patients.length,
       signed: patients.filter((p) => p.declarations > 0).length,
       week: patients.filter((p) => new Date(p.created_at).getTime() >= weekAgo).length,
-    };
+    });
   }, [patients]);
 
   const filtered = useMemo(() => {

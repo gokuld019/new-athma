@@ -51,6 +51,9 @@ export default function AdminPanelLayout({ children }) {
   const [admin, setAdmin] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
+  
+  // 1. Added state to store the formatted date string
+  const [dateString, setDateString] = useState("");
 
   // auth guard for every page inside the admin panel
   useEffect(() => {
@@ -69,6 +72,18 @@ export default function AdminPanelLayout({ children }) {
     
     setIsChecking(false);
   }, [router]);
+
+  // 2. Calculate the date in useEffect to avoid prerender errors
+  useEffect(() => {
+    setDateString(
+      new Date().toLocaleDateString("en-IN", { 
+        weekday: "short", 
+        day: "numeric", 
+        month: "short", 
+        year: "numeric" 
+      })
+    );
+  }, []);
 
   // close the mobile menu after navigating
   useEffect(() => {
@@ -178,6 +193,7 @@ export default function AdminPanelLayout({ children }) {
         .ad-date {
           padding: 9px 14px; border-radius: 999px; background: #fff; border: 1px solid var(--line);
           font-size: 13px; font-weight: 600; color: var(--ink-2); white-space: nowrap;
+          min-width: 120px; text-align: center;
         }
 
         .ad-panel {
@@ -415,7 +431,8 @@ export default function AdminPanelLayout({ children }) {
             <p className="ad-h1-sub">{current.sub}</p>
           </div>
           <div className="ad-date">
-            {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+            {/* 3. Use the state variable here instead of new Date() */}
+            {dateString}
           </div>
         </header>
 

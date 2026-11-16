@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+// Opt this segment out of instant-navigation validation.
+// The parent (panel) layout may conditionally not render {children}
+// (e.g. auth guard), which drops this segment from the render tree.
+export const instant = false;
+
 // Sample data — replace with your API response later
 const WEEK = [
   { d: "Mon", v: 42 }, { d: "Tue", v: 58 }, { d: "Wed", v: 51 }, { d: "Thu", v: 73 },

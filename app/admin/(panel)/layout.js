@@ -48,23 +48,26 @@ export default function AdminPanelLayout({ children }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const [ready, setReady] = useState(false);
   const [admin, setAdmin] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [isChecking, setIsChecking] = useState(true);
 
   // auth guard for every page inside the admin panel
   useEffect(() => {
     const token = localStorage.getItem("athma_token");
     const role = localStorage.getItem("athma_role");
+    
     if (!token || role !== "admin") {
       router.replace("/admin/login");
       return;
     }
+    
     try {
       const raw = localStorage.getItem("athma_user");
       if (raw) setAdmin(JSON.parse(raw));
     } catch {}
-    setReady(true);
+    
+    setIsChecking(false);
   }, [router]);
 
   // close the mobile menu after navigating
@@ -78,8 +81,6 @@ export default function AdminPanelLayout({ children }) {
     localStorage.removeItem("athma_user");
     router.replace("/admin/login");
   };
-
-  if (!ready) return null;
 
   const current = NAV.find((n) => pathname === n.href || pathname.startsWith(n.href + "/")) || NAV[0];
   const adminName = admin?.name || admin?.fullName || "Admin";
@@ -418,6 +419,7 @@ export default function AdminPanelLayout({ children }) {
           </div>
         </header>
 
+        {/* Render children immediately. Do NOT block with `return null` */}
         {children}
       </main>
     </div>

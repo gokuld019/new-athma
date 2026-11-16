@@ -33,6 +33,10 @@ const typeLabel = (t) => {
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 
+// Format snake_case keys to Title Case (e.g. "appraisal_of_own_emotions" -> "Appraisal Of Own Emotions")
+const formatKey = (key) =>
+  key.split("_").map((word) => word.charAt(0).toUpperCase() + word.slice(1)).join(" ");
+
 const SearchIcon = (
   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="11" cy="11" r="7" />
@@ -41,9 +45,9 @@ const SearchIcon = (
 );
 const QuestionIcon = (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <path d="M21 12a8.5 8.5 0 0 1-12.4 7.5L3 21l1.5-5.4A8.5 8.5 0 1 1 21 12z" />
-    <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .8-1 1.5" />
-    <path d="M12 16.5h.01" />
+    <circle cx="12" cy="12" r="10" />
+    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+    <path d="M12 17h.01" />
   </svg>
 );
 const BackIcon = (
@@ -59,6 +63,13 @@ const ChevronRight = (
 const CheckIcon = (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <path d="M5 12.5l4.5 4.5L19 7.5" />
+  </svg>
+);
+const ClipboardIcon = (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+    <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+    <path d="M9 14l2 2 4-4" />
   </svg>
 );
 
@@ -80,6 +91,12 @@ export default function QuestionsPage() {
   const [qs, setQs] = useState({ loading: false, error: "", title: "", list: [] });
   const [lang, setLang] = useState("en");
   const [qSearch, setQSearch] = useState("");
+
+  // NEW: report state for the specific quiz
+  const [attemptId, setAttemptId] = useState("");
+  const [reportData, setReportData] = useState(null);
+  const [reportLoading, setReportLoading] = useState(false);
+  const [reportError, setReportError] = useState("");
 
   const reqRef = useRef(0); // ignores stale responses when you switch quickly
 
@@ -151,6 +168,9 @@ export default function QuestionsPage() {
   const openQuiz = (z) => {
     setSelected(z);
     setQSearch("");
+    setAttemptId(""); // Reset report state when switching quizzes
+    setReportData(null);
+    setReportError("");
     window.scrollTo({ top: 0 });
     loadQuestions(z);
   };
@@ -159,6 +179,24 @@ export default function QuestionsPage() {
     reqRef.current++;
     setSelected(null);
     window.scrollTo({ top: 0 });
+  };
+
+  /* ---------- 3. fetch report for specific attempt ---------- */
+  const fetchReport = async () => {
+    if (!attemptId.trim()) return;
+    setReportLoading(true);
+    setReportError("");
+    setReportData(null);
+
+    try {
+      // Using the specific endpoint provided in your prompt
+      const data = await api(`/attempt/${attemptId.trim()}/first-quiz-report`);
+      setReportData(data);
+    } catch (err) {
+      setReportError(err.message);
+    } finally {
+      setReportLoading(false);
+    }
   };
 
   /* ---------- derived ---------- */
@@ -241,18 +279,24 @@ export default function QuestionsPage() {
         .qz-tools { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
         .qz-count { margin-left: auto; font-size: 12px; font-weight: 500; color: var(--muted); }
 
-        .qz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .qz-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
         .qz-card {
-          display: flex; flex-direction: column; padding: 18px 20px; cursor: pointer; transition: border-color .15s, background .15s;
+          position: relative; display: flex; flex-direction: column; padding: 20px 22px; cursor: pointer; transition: border-color .15s, background .15s;
         }
         .qz-card:hover { border-color: var(--o-200); background: var(--o-50); }
         .qz-card:focus-visible { outline: 2px solid var(--o-500); outline-offset: 2px; }
-        .qz-card-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
-        .qz-title { margin: 0 0 6px; font-size: 14.5px; font-weight: 600; line-height: 1.4; letter-spacing: -0.01em; }
-        .qz-desc { flex: 1; margin: 0 0 16px; font-size: 13px; line-height: 1.6; color: var(--muted); }
-        .qz-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line); }
-        .qz-qcount { display: inline-flex; align-items: center; gap: 7px; font-size: 12.5px; font-weight: 600; color: var(--ink-2); }
-        .qz-view { display: inline-flex; align-items: center; gap: 2px; font-size: 12.5px; font-weight: 600; color: var(--o-600); }
+        
+        /* Match the image layout */
+        .qz-card-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 16px; }
+        .qz-icon-box { 
+          width: 42px; height: 42px; display: flex; align-items: center; justify-content: center; 
+          background: #ea580c; color: #fff; border-radius: 12px;
+        }
+        .qz-title { margin: 0 0 8px; font-size: 16px; font-weight: 700; line-height: 1.4; letter-spacing: -0.01em; color: #1c1917; }
+        .qz-desc { flex: 1; margin: 0 0 20px; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
+        .qz-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-top: 16px; border-top: 1px dashed var(--line); }
+        .qz-qcount { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--muted); }
+        .qz-view { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: #ea580c; }
 
         /* ---------- quiz page ---------- */
         .qp-back {
@@ -266,7 +310,7 @@ export default function QuestionsPage() {
         .qp-title { margin: 10px 0 4px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.3; }
         .qp-sub { font-size: 12.5px; color: var(--muted); }
 
-        .qp-grid { display: grid; grid-template-columns: 280px 1fr; gap: 16px; align-items: start; }
+        .qp-grid { display: grid; grid-template-columns: 300px 1fr; gap: 16px; align-items: start; }
         .qp-side { position: sticky; top: 20px; padding: 4px 22px 8px; }
         .qp-group { padding: 16px 0; }
         .qp-group + .qp-group { border-top: 1px solid var(--line); }
@@ -274,6 +318,30 @@ export default function QuestionsPage() {
         .qp-dl { display: grid; gap: 10px; margin: 0; }
         .qp-dl dt { font-size: 11.5px; font-weight: 500; color: var(--muted); }
         .qp-dl dd { margin: 2px 0 0; font-size: 13px; font-weight: 500; line-height: 1.5; word-break: break-word; }
+
+        /* Report fetch form */
+        .qp-report-form { display: flex; gap: 8px; margin-top: 10px; }
+        .qp-report-form input { 
+          flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--line); 
+          font-size: 13px; font-family: inherit; outline: none;
+        }
+        .qp-report-form input:focus { border-color: var(--o-500); }
+        .qp-report-form button {
+          padding: 8px 12px; border-radius: 8px; background: var(--o-500); color: #fff; 
+          border: none; font-size: 12px; font-weight: 600; cursor: pointer;
+        }
+        .qp-report-form button:hover { background: var(--o-600); }
+
+        /* Report Data display */
+        .qp-report-data { margin-top: 16px; background: var(--o-50); border: 1px solid var(--o-100); border-radius: 10px; padding: 14px; }
+        .qp-report-title { font-size: 12px; font-weight: 600; color: var(--o-700); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+        .qp-report-row { display: flex; justify-content: space-between; font-size: 12.5px; padding: 6px 0; border-bottom: 1px solid var(--o-100); }
+        .qp-report-row:last-child { border-bottom: none; }
+        .qp-report-key { color: var(--muted); }
+        .qp-report-val { font-weight: 600; color: var(--ink); }
+        .qp-report-val.low { color: #b91c1c; }
+        .qp-report-val.normal { color: #15803d; }
+        .qp-report-val.high { color: #ea580c; }
 
         .qp-main { min-width: 0; }
         .qp-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
@@ -363,7 +431,7 @@ export default function QuestionsPage() {
                   <div className="qz-sum-label">Active quizzes</div>
                 </div>
               </section>
-
+            
               <div className="qz-tools">
                 <div className="ad-search">
                   {SearchIcon}
@@ -372,7 +440,7 @@ export default function QuestionsPage() {
                     placeholder="Search by title or category"
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
-                    aria-label="Search quizzes"
+                    aria-label="Search quizzes"   
                   />
                 </div>
                 <div className="ad-chips">
@@ -408,10 +476,10 @@ export default function QuestionsPage() {
                       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && (e.preventDefault(), openQuiz(z))}
                     >
                       <div className="qz-card-top">
+                        <div className="qz-icon-box">
+                          {ClipboardIcon}
+                        </div>
                         <span className="ad-q-cat">{z.category || "General"}</span>
-                        <span className={`ad-pill ${z.is_active ? "ok" : "alert"}`}>
-                          {z.is_active ? "Active" : "Inactive"}
-                        </span>
                       </div>
                       <h2 className="qz-title">{z.title}</h2>
                       <p className="qz-desc">{z.description || "No description added."}</p>
@@ -420,7 +488,7 @@ export default function QuestionsPage() {
                           {QuestionIcon}
                           {z.questions_count ?? z.total_questions} questions
                         </span>
-                        <span className="qz-view">View questions {ChevronRight}</span>
+                        <span className="qz-view">Start {ChevronRight}</span>
                       </div>
                     </article>
                   ))}
@@ -466,6 +534,57 @@ export default function QuestionsPage() {
                   <div><dt>Questions</dt><dd>{selected.questions_count ?? selected.total_questions ?? qs.list.length}</dd></div>
                   <div><dt>Added on</dt><dd>{fmtDate(selected.created_at)}</dd></div>
                 </dl>
+              </div>
+
+              {/* NEW: Fetch Report section */}
+              <div className="qp-group">
+                <h3 className="qp-group-title">Patient Report</h3>
+                <p style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 8 }}>
+                  Enter an Attempt ID to view the calculated scores.
+                </p>
+                <div className="qp-report-form">
+                  <input 
+                    type="text" 
+                    placeholder="e.g. ATT-1-6" 
+                    value={attemptId}
+                    onChange={(e) => setAttemptId(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && fetchReport()}
+                  />
+                  <button type="button" onClick={fetchReport} disabled={reportLoading}>
+                    {reportLoading ? "..." : "Load"}
+                  </button>
+                </div>
+                
+                {reportError && <div style={{ color: "red", fontSize: 12, marginTop: 8 }}>{reportError}</div>}
+
+                {reportData && (
+                  <div className="qp-report-data">
+                    <div className="qp-report-title">Total Score Interpretation: {reportData.total_score_interpretation}</div>
+                    
+                    {reportData.report && (
+                      <div style={{ marginBottom: 12 }}>
+                        {Object.entries(reportData.report).map(([key, val]) => (
+                          <div className="qp-report-row" key={key}>
+                            <span className="qp-report-key">{formatKey(key)}</span>
+                            <span className="qp-report-val">{val}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {reportData.sub_scale_interpretations && (
+                      <>
+                        <div className="qp-report-title" style={{ marginTop: 12 }}>Sub-scale Interpretations</div>
+                        {Object.entries(reportData.sub_scale_interpretations).map(([key, val]) => (
+                          <div className="qp-report-row" key={key}>
+                            <span className="qp-report-key">{formatKey(key)}</span>
+                            <span className={`qp-report-val ${String(val).toLowerCase()}`}>{val}</span>
+                          </div>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             </aside>
 

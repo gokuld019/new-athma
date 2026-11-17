@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const BASE_URL = "https://counslingsoftware.athmarehab.com/api/admin";
+const BASE_URL = "https://api.crazystory.in/api/admin";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -29,6 +29,12 @@ const formatKey = (key) =>
 
 const esc = (s) =>
   String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+// Is this attempt the Big Five Inventory-10 (quiz 6)?
+const isBigFive = (attempt) => {
+  const t = attempt?.quiz_title?.toLowerCase() || "";
+  return Number(attempt?.quiz_id) === 6 || t.includes("bfi-10") || t.includes("big five");
+};
 
 /* ------------------------------------------------------------------ */
 /*  Icons                                                              */
@@ -162,6 +168,12 @@ const subIcon = (key) => {
   if (k.includes("behaviour") || k.includes("behavior")) return "users";
   if (k.includes("sensory")) return "pulse";
   if (k.includes("cognitive")) return "target";
+  // Big Five traits
+  if (k.includes("extraversion")) return "users";
+  if (k.includes("agreeable")) return "smile";
+  if (k.includes("conscientious")) return "clipboard";
+  if (k.includes("neurotic")) return "cloud";
+  if (k.includes("openness")) return "bolt";
   return "chart";
 };
 
@@ -261,6 +273,91 @@ function SummaryCard({ data, quizTitle }) {
                       </div>
                     </>
                   )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Big Five Inventory-10 (BFI-10) summary                             */
+/*  API: GET /attempt/{attempt_id}/sixth-quiz-report                   */
+/*  { report: { extraversion: 8, ... }, interpretations: { ... } }     */
+/* ------------------------------------------------------------------ */
+const BIG_FIVE_ORDER = ["extraversion", "agreeableness", "conscientiousness", "neuroticism", "openness"];
+
+function BigFiveSummaryCard({ data, quizTitle }) {
+  const report = data?.report || {};
+  const interps = data?.interpretations || {};
+
+  // known traits first (in standard OCEAN-style order), then anything extra the API sends
+  const keys = [
+    ...BIG_FIVE_ORDER.filter((k) => report[k] !== undefined),
+    ...Object.keys(report).filter((k) => !BIG_FIVE_ORDER.includes(k)),
+  ];
+
+  const counts = { low: 0, normal: 0, high: 0 };
+  keys.forEach((k) => {
+    const lv = getLevel(interps[k]);
+    if (counts[lv.key] !== undefined) counts[lv.key]++;
+  });
+  const hasCounts = Object.values(counts).some((c) => c > 0);
+
+  return (
+    <div className="ad-panel sm-card">
+      <div className="sm-body">
+        <div className="sm-head">
+          <div className="sm-title-wrap">
+            <span className="sm-tile"><Ico name="clipboard" size={20} /></span>
+            <div style={{ minWidth: 0 }}>
+              <h3 className="sm-title">Score Summary</h3>
+              <div className="sm-sub">{quizTitle}</div>
+            </div>
+          </div>
+        </div>
+
+        {hasCounts && (
+          <div className="sm-counts">
+            <span className="sm-counts-label">Traits</span>
+            {[
+              ["high", "High"],
+              ["normal", "Average"],
+              ["low", "Low"],
+            ].map(
+              ([k, label]) =>
+                counts[k] > 0 && <LevelBadge key={k} level={LEVELS[k]} text={`${counts[k]} ${label}`} />
+            )}
+          </div>
+        )}
+
+        {keys.length > 0 && (
+          <div className="sm-grid">
+            {keys.map((key) => {
+              const lv = getLevel(interps[key]);
+              const interpText = interps[key] || "";
+              return (
+                <div className={`sm-item ${lv.cls}`} key={key}>
+                  <div className="sm-item-top">
+                    <span className="sm-ico"><Ico name={subIcon(key)} size={17} /></span>
+                    <span className="sm-name">{formatKey(key)}</span>
+                  </div>
+                  <div className="sm-mid">
+                    <span className="sm-val">
+                      {String(report[key])}
+                      <span style={{ fontSize: 13, fontWeight: 500, color: "var(--muted)" }}>/10</span>
+                    </span>
+                    {lv.key !== "none" && <LevelBadge level={lv} text={interpText} />}
+                  </div>
+                  <div className="sm-seg" aria-hidden="true">
+                    {[0, 1, 2].map((i) => <i key={i} className={i === lv.idx ? "on" : ""} />)}
+                  </div>
+                  <div className="sm-seg-labels" aria-hidden="true">
+                    {["Low", "Average", "High"].map((l, i) => <span key={l} className={i === lv.idx ? "on" : ""}>{l}</span>)}
+                  </div>
                 </div>
               );
             })}
@@ -523,6 +620,9 @@ export default function PatientsPage() {
             endpoint = `/attempt/${attemptId}/fourth-quiz-report`;
           } else if (attempt.quiz_id === 5 || titleLower.includes("geriatric") || titleLower.includes("gds")) {
             endpoint = `/attempt/${attemptId}/fifth-quiz-report`;
+          } else if (isBigFive(attempt)) {
+            // Big Five Inventory-10 (BFI-10)
+            endpoint = `/attempt/${attemptId}/sixth-quiz-report`;
           }
 
           if (endpoint) {
@@ -1161,11 +1261,13 @@ export default function PatientsPage() {
                     <div className="ad-panel pl-state"><span className="pl-spin" /><div>Loading report data...</div></div>
                   )}
                   {!reportDetails.loading && reportDetails.data && (
-                    // Check if it's the Autism report (quiz_id 4) to use the custom layout
+                    // Pick the custom layout for each assessment
                     (activeAttempt.quiz_id === 4 || activeAttempt.quiz_title?.toLowerCase().includes("autism")) ? (
                       <AutismSummaryCard data={reportDetails.data} quizTitle={activeAttempt.quiz_title} />
                     ) : (activeAttempt.quiz_id === 5 || activeAttempt.quiz_title?.toLowerCase().includes("geriatric")) ? (
                       <GeriatricSummaryCard data={reportDetails.data} quizTitle={activeAttempt.quiz_title} />
+                    ) : isBigFive(activeAttempt) ? (
+                      <BigFiveSummaryCard data={reportDetails.data} quizTitle={activeAttempt.quiz_title} />
                     ) : (
                       <SummaryCard data={reportDetails.data} quizTitle={activeAttempt.quiz_title} />
                     )

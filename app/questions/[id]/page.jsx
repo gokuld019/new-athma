@@ -4,8 +4,8 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_BASE = "https://counslingsoftware.athmarehab.com/api/patient/quizzes";
-const SAVE_ANSWER_URL = "https://counslingsoftware.athmarehab.com/api/patient/answer/save";
+const API_BASE = "https://api.crazystory.in/api/patient/quizzes";
+const SAVE_ANSWER_URL = "https://api.crazystory.in/api/patient/answer/save";
 
 const STORAGE_KEY = (id) => `quiz_answers_${id}`;
 const BLOCK_SIZE = 20;
@@ -287,7 +287,9 @@ function QuizQuestions() {
       }
 
       setSubmitted(true);
-      scrollCenterTop();
+
+      // No result card any more — send the patient back to the quiz list
+      router.push("/questions");
     } finally {
       setSubmitting(false);
     }
@@ -325,17 +327,6 @@ function QuizQuestions() {
     ? (answeredCount / totalQuestions) * 100
     : 0;
   const allAnswered = totalQuestions > 0 && answeredCount === totalQuestions;
-
-  const totalScore = Object.values(answers).reduce((a, b) => a + b, 0);
-  const maxScore = quiz
-    ? quiz.questions.reduce(
-        (sum, q) => sum + Math.max(...(q.scores?.length ? q.scores : [0])),
-        0
-      )
-    : 0;
-
-  const scorePct = maxScore ? Math.round((totalScore / maxScore) * 100) : 0;
-  const RING_LEN = 2 * Math.PI * 52;
 
   const isYesNo =
     sortedQuestions.length > 0 &&
@@ -600,31 +591,6 @@ function QuizQuestions() {
         .ap-btn:disabled { opacity: .45; cursor: not-allowed; box-shadow: none; }
         .ap-hint { font-size: 12px; color: var(--muted); }
 
-        /* result */
-        .ap-result {
-          display: flex; align-items: center; gap: 26px;
-          padding: 26px; margin-bottom: 26px; border-radius: 16px;
-          background: linear-gradient(135deg, #fff, var(--teal-50));
-          border: 1.5px solid var(--teal-300);
-        }
-        .ap-ring { position: relative; flex: none; width: 112px; height: 112px; }
-        .ap-ring svg { transform: rotate(-90deg); width: 112px; height: 112px; }
-        .ap-ring-num {
-          position: absolute; inset: 0; display: grid; place-items: center; text-align: center;
-          font-size: 24px; font-weight: 800; line-height: 1;
-        }
-        .ap-ring-num small { display: block; margin-top: 4px; font-size: 10px; font-weight: 600; color: var(--muted); letter-spacing: .04em; }
-        .ap-result h2 { margin: 0 0 6px; font-size: 18px; font-weight: 800; line-height: 1.3; }
-        .ap-result p { margin: 0; font-size: 13.5px; line-height: 1.6; color: var(--muted); }
-        .ap-result p strong { color: var(--teal-600); }
-        .ap-result-actions { margin-top: 14px; display: flex; gap: 10px; flex-wrap: wrap; }
-        .ap-link-btn {
-          display: inline-flex; padding: 10px 18px; border-radius: 999px;
-          border: 1px solid var(--line); background: #fff; color: var(--ink-strong);
-          font-family: inherit; font-size: 13px; font-weight: 600; text-decoration: none; cursor: pointer;
-        }
-        .ap-link-btn.primary { border: none; color: #fff; background: linear-gradient(135deg, #fb923c, #ea580c); }
-
         /* ---------- right: question blocks ---------- */
         .ap-blocks { display: flex; flex-direction: column; gap: 12px; }
         .ap-block {
@@ -681,8 +647,6 @@ function QuizQuestions() {
           .ap-right { order: 3; padding: 22px; }
           .ap-mascot { display: none; }
           .ap-q { padding: 36px 18px 22px; }
-          .ap-result { flex-direction: column; text-align: center; }
-          .ap-result-actions { justify-content: center; }
         }
         @media (max-width: 560px) {
           .ap-back span { display: none; }
@@ -831,74 +795,6 @@ function QuizQuestions() {
 
             {!loading && !error && quiz && currentBlock && (
               <>
-                {submitted && (
-                  <div className="ap-result">
-                    <div className="ap-ring">
-                      <svg viewBox="0 0 128 128">
-                        <defs>
-                          <linearGradient id="ap-grad" x1="0" y1="0" x2="1" y2="1">
-                            <stop offset="0%" stopColor="#2dd4bf" />
-                            <stop offset="100%" stopColor="#0d9488" />
-                          </linearGradient>
-                        </defs>
-                        <circle cx="64" cy="64" r="52" fill="none" stroke="#ccfbf1" strokeWidth="12" />
-                        <circle
-                          cx="64"
-                          cy="64"
-                          r="52"
-                          fill="none"
-                          stroke="url(#ap-grad)"
-                          strokeWidth="12"
-                          strokeLinecap="round"
-                          strokeDasharray={RING_LEN}
-                          strokeDashoffset={RING_LEN * (1 - scorePct / 100)}
-                          style={{ transition: "stroke-dashoffset .8s ease" }}
-                        />
-                      </svg>
-                      <div className="ap-ring-num">
-                        <div>
-                          {scorePct}%<small>SCORE</small>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <h2>Thank you for completing the assessment</h2>
-                      <p>
-                        Your responses have been recorded. Total score:{" "}
-                        <strong>{totalScore}</strong> / {maxScore}
-                      </p>
-                      <p style={{ marginTop: 6, fontSize: 12.5 }}>
-                        A clinician will review your results if needed.
-                      </p>
-                      <div className="ap-result-actions">
-                        <Link href="/questions" className="ap-link-btn primary">
-                          Back to quizzes
-                        </Link>
-                        <button
-                          className="ap-link-btn"
-                          onClick={() => {
-                            setAnswers({});
-                            setSaveStatus({});
-                            setChosenText({});
-                            setSubmitted(false);
-                            setActiveBlock(0);
-                            try {
-                              localStorage.removeItem(STORAGE_KEY(quizId));
-                            } catch {
-                              /* ignore */
-                            }
-                            scrollCenterTop();
-                            router.refresh();
-                          }}
-                        >
-                          Retake
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
                 {currentBlock.questions.map((q, i) => {
                   const number = currentBlock.start + i;
                   return (
@@ -946,7 +842,7 @@ function QuizQuestions() {
                                   </>
                                 )}
                               </span>
-                            </label>
+                            </label>                             
                           );
                         })}
                       </div>

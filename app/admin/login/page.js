@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 
-const API_URL = "https://counslingsoftware.athmarehab.com/api/admin/login";
+const API_URL = "https://api.crazystory.in/api/admin/login";
 
 export default function AdminLoginPage() {
   const router = useRouter();

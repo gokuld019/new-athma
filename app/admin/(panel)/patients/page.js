@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
-const BASE_URL = "https://api.crazystory.in/api/admin";
+const BASE_URL = "https://counslingsoftware.athmarehab.com/api/admin";
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */

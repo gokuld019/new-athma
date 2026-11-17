@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
-const API_URL = "https://api.crazystory.in/api/patient/quizzes";
-const LOGOUT_URL = "https://api.crazystory.in/api/patient/logout";
+const API_URL = "https://counslingsoftware.athmarehab.com/api/patient/quizzes";
+const LOGOUT_URL = "https://counslingsoftware.athmarehab.com/api/patient/logout";
 
 export default function QuestionsPage() {
   const router = useRouter();
